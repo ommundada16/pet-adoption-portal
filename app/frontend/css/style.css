@@ -1,62 +1,296 @@
-/* style.css - shared basic styling for all pages */
+/* style.css - shared styling for all pages */
+
+:root {
+    --mustard: #f5a623;
+    --mustard-dark: #d98f0f;
+    --red: #e1442e;
+    --red-dark: #c7351f;
+    --cream: #fff8ec;
+    --yellow-band: #fdf1c8;
+    --card-bg: #ffffff;
+    --text: #2b2b2b;
+    --text-light: #6b6b6b;
+    --border: #ece2cf;
+    --success: #4caf50;
+    --danger: #e1442e;
+    --radius: 14px;
+    --font-display: "Baloo 2", "Segoe UI", sans-serif;
+    --font-body: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
 
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f5f5f5;
+    font-family: var(--font-body);
+    background-color: var(--cream);
+    color: var(--text);
     margin: 0;
+    line-height: 1.5;
 }
 
-.form-container {
-    max-width: 400px;
-    margin: 60px auto;
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+h1, h2, h3 {
+    font-family: var(--font-display);
+    color: var(--text);
 }
 
-.form-container input, .form-container select {
-    width: 100%;
-    padding: 8px;
-    margin: 6px 0 12px 0;
-}
-
-.form-container button {
-    width: 100%;
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.pet-card {
-    display: inline-block;
-    width: 200px;
-    margin: 10px;
-    padding: 10px;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 0 8px rgba(0,0,0,0.1);
-    text-align: center;
-}
-
-.pet-card img {
-    width: 100%;
-    height: 150px;
-    object-fit: cover;
-    border-radius: 6px;
-}
-
+/* ---------- Navbar ---------- */
 .navbar {
-    background-color: #4CAF50;
-    padding: 12px 20px;
+    background-color: var(--mustard);
+    padding: 16px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.navbar .brand {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
     color: white;
+    text-decoration: none;
 }
 
 .navbar a {
     color: white;
-    margin-right: 15px;
+    margin-left: 20px;
     text-decoration: none;
+    font-weight: 700;
+    transition: opacity 0.2s;
+}
+
+.navbar a:hover {
+    opacity: 0.75;
+}
+
+/* ---------- Auth pages brand ---------- */
+.auth-brand {
+    font-family: var(--font-display);
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--mustard-dark);
+    padding-top: 40px;
+}
+
+/* ---------- Page heading & toolbar (hero band) ---------- */
+.hero {
+    background-color: var(--yellow-band);
+    padding: 30px 20px 25px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.page-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0 0 14px;
+}
+
+.toolbar select {
+    padding: 9px 16px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    font-size: 14px;
+    background: white;
+    font-family: var(--font-body);
+}
+
+/* ---------- Forms ---------- */
+.form-container {
+    max-width: 420px;
+    margin: 20px auto 40px;
+    background: var(--card-bg);
+    padding: 28px;
+    border-radius: var(--radius);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+
+.form-container h2 {
+    margin-top: 0;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--text-light);
+}
+
+.form-container input,
+.form-container select,
+.form-container textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: var(--font-body);
+}
+
+.form-container input:focus,
+.form-container select:focus {
+    outline: none;
+    border-color: var(--mustard);
+}
+
+.form-container p {
+    text-align: center;
+    font-size: 14px;
+    color: var(--red-dark);
+}
+
+.form-container a {
+    color: var(--red);
+    font-weight: 700;
+}
+
+.btn {
+    display: inline-block;
+    width: 100%;
+    padding: 13px;
+    background-color: var(--red);
+    color: white;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    transition: background-color 0.2s;
+    margin-top: 6px;
+}
+
+.btn:hover {
+    background-color: var(--red-dark);
+}
+
+.btn-approve, .btn-reject {
+    border: none;
+    padding: 8px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    color: white;
+    font-weight: 700;
+    margin-right: 8px;
+    margin-top: 8px;
+}
+
+.btn-approve { background-color: var(--success); }
+.btn-reject { background-color: var(--danger); }
+
+/* ---------- Pet cards grid ---------- */
+.pet-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 22px;
+    padding: 0 20px 50px;
+}
+
+.pet-card {
+    width: 230px;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    overflow: hidden;
+    text-align: center;
+    transition: transform 0.15s;
+}
+
+.pet-card:hover {
+    transform: translateY(-5px);
+}
+
+.pet-card img {
+    width: 100%;
+    height: 170px;
+    object-fit: cover;
+}
+
+.pet-card h3 {
+    margin: 12px 0 4px;
+    font-size: 19px;
+}
+
+.pet-card p {
+    margin: 0 0 12px;
+    color: var(--text-light);
+    font-size: 14px;
+}
+
+.pet-card .view-link {
+    display: inline-block;
+    margin-bottom: 16px;
+    color: white;
+    background-color: var(--red);
+    padding: 9px 18px;
+    border-radius: 999px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.pet-card .view-link:hover {
+    background-color: var(--red-dark);
+}
+
+.status-Available { color: var(--success); font-weight: 700; }
+.status-Pending { color: var(--mustard-dark); font-weight: 700; }
+.status-Adopted { color: var(--text-light); font-weight: 700; }
+
+/* ---------- Detail card (pet-details page) ---------- */
+.detail-card {
+    max-width: 420px;
+    margin: 20px auto 40px;
+    background: var(--card-bg);
+    padding: 24px;
+    border-radius: var(--radius);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+    text-align: center;
+}
+
+.detail-card img {
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 14px;
+}
+
+/* ---------- List cards (admin requests, my-requests) ---------- */
+.list-card {
+    max-width: 600px;
+    margin: 0 auto 40px;
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    padding: 6px 22px;
+}
+
+.request-item {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.request-item:last-child {
+    border-bottom: none;
+}
+
+.request-item p {
+    margin: 4px 0;
+    text-align: left;
+    color: var(--text);
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-light);
+    padding: 20px;
 }

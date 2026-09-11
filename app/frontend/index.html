@@ -3,25 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <title>Pet Adoption Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="navbar" id="navbar"></div>
-
-    <h1 style="text-align:center;">Browse Pets</h1>
-
-    <div style="text-align:center; margin-bottom:20px;">
-        <label>Filter by species: </label>
-        <select id="speciesFilter">
-            <option value="">All</option>
-            <option value="Dog">Dog</option>
-            <option value="Cat">Cat</option>
-            <option value="Rabbit">Rabbit</option>
-            <option value="Bird">Bird</option>
-        </select>
+    <div class="navbar">
+        <a href="index.html" class="brand">🐾 PetAdopt</a>
+        <div id="navLinks"></div>
     </div>
 
-    <div id="petList" style="text-align:center;"></div>
+    <div class="hero">
+        <h1 class="page-title">Find Your New Best Friend</h1>
+        <div class="toolbar">
+            <label>Filter by species: </label>
+            <select id="speciesFilter">
+                <option value="">All</option>
+                <option value="Dog">Dog</option>
+                <option value="Cat">Cat</option>
+                <option value="Rabbit">Rabbit</option>
+                <option value="Bird">Bird</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="petList" class="pet-grid"></div>
 
     <script src="js/api.js"></script>
     <script src="js/pets.js"></script>
