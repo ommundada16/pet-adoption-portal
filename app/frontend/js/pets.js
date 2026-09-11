@@ -1,9 +1,14 @@
 // pets.js - loads and displays the pet list on the home page
 
-// Fetches pets from the backend, optionally filtered by species
-async function loadPets(species = "") {
-    const endpoint = species ? `/api/pets?species=${species}` : "/api/pets";
-    const pets = await apiRequest(endpoint, "GET");
+// Fetches pets from the backend, filtered by whatever the species/adoption dropdowns are set to
+async function loadPets() {
+    const species = document.getElementById("speciesFilter").value;
+    const adopted = document.getElementById("adoptedFilter").value;
+    const params = new URLSearchParams();
+    if (species) params.set("species", species);
+    if (adopted) params.set("adopted", adopted);
+    const query = params.toString();
+    const pets = await apiRequest(query ? `/api/pets?${query}` : "/api/pets", "GET");
     displayPets(pets);
 }
 
@@ -26,10 +31,9 @@ function displayPets(pets) {
     });
 }
 
-// Runs whenever the species dropdown is changed
-document.getElementById("speciesFilter").addEventListener("change", function () {
-    loadPets(this.value);
-});
+// Runs whenever either filter dropdown is changed
+document.getElementById("speciesFilter").addEventListener("change", loadPets);
+document.getElementById("adoptedFilter").addEventListener("change", loadPets);
 
 renderNavbar();
 loadPets();

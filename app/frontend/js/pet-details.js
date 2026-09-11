@@ -14,6 +14,11 @@ async function loadPetDetails() {
         ? `${API_BASE_URL}/uploads/${pet.image_filename}`
         : "https://via.placeholder.com/300x200?text=No+Image";
 
+    // Shelters/admins don't adopt pets - only show the adopt button to adopters (or logged-out visitors)
+    const actionHtml = getRole() === "shelter"
+        ? `<p style="color:var(--text-light); font-style:italic;">Shelter accounts cannot request adoptions.</p>`
+        : `<button class="btn" id="adoptBtn">Request to Adopt</button><p id="message"></p>`;
+
     document.getElementById("petDetails").innerHTML = `
         <img src="${imageUrl}">
         <h2>${pet.name}</h2>
@@ -22,11 +27,13 @@ async function loadPetDetails() {
         <p><b>Age:</b> ${pet.age || "Unknown"}</p>
         <p><b>Status:</b> <span class="status-${pet.status}">${pet.status}</span></p>
         <p>${pet.description || ""}</p>
-        <button class="btn" id="adoptBtn">Request to Adopt</button>
-        <p id="message"></p>
+        ${actionHtml}
     `;
 
-    document.getElementById("adoptBtn").addEventListener("click", () => requestAdoption(petId));
+    const adoptBtn = document.getElementById("adoptBtn");
+    if (adoptBtn) {
+        adoptBtn.addEventListener("click", () => requestAdoption(petId));
+    }
 }
 
 // Sends an adoption request for this pet (must be logged in as an adopter)

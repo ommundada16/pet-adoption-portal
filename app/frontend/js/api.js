@@ -48,7 +48,7 @@ function renderNavbar() {
     if (role === "user") {
         navLinks.innerHTML = `<a href="index.html">Browse Pets</a> <a href="my-requests.html">My Requests</a> <a href="#" onclick="logout()">Logout</a>`;
     } else if (role === "shelter") {
-        navLinks.innerHTML = `<a href="index.html">Browse Pets</a> <a href="admin.html">Admin Dashboard</a> <a href="#" onclick="logout()">Logout</a>`;
+        navLinks.innerHTML = `<a href="index.html">Browse Pets</a> <a href="admin.html">Requests</a> <a href="add-pet.html">Add New Pet</a> <a href="#" onclick="logout()">Logout</a>`;
     } else {
         navLinks.innerHTML = `<a href="index.html">Browse Pets</a> <a href="login.html">Login</a> <a href="register.html">Register</a>`;
     }
