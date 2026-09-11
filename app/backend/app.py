@@ -1,6 +1,7 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from functools import wraps
 from db import get_db_connection
 import jwt
@@ -10,6 +11,10 @@ import os
 app = Flask(__name__)
 CORS(app)
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-production")
+UPLOAD_FOLDER = "uploads"
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # Checks the Authorization header for a valid JWT before letting a route run
 def token_required(f):
@@ -169,6 +174,36 @@ def update_pet_status(payload, pet_id):
     cursor.close()
     conn.close()
     return jsonify({"message": "Pet status updated"})
+
+# Checks the uploaded file has an allowed image extension
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# Uploads a pet's photo and saves its filename in the database — shelter only
+@app.route("/api/pets/<int:pet_id>/upload-image", methods=["POST"])
+@token_required
+def upload_pet_image(payload, pet_id):
+    if payload["role"] != "shelter":
+        return jsonify({"error": "Only shelters can upload pet images"}), 403
+    if "image" not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+    file = request.files["image"]
+    if file.filename == "" or not allowed_file(file.filename):
+        return jsonify({"error": "Invalid file"}), 400
+    filename = secure_filename(f"pet_{pet_id}_{file.filename}")
+    file.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE pets SET image_filename = %s WHERE pet_id = %s", (filename, pet_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Image uploaded", "filename": filename})
+
+# Serves an uploaded pet image file back to the browser
+@app.route("/uploads/<filename>", methods=["GET"])
+def get_pet_image(filename):
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 # --- ADOPTION REQUESTS ---
 
