@@ -1,6 +1,8 @@
 // api.js - shared helper functions for talking to the backend
 
-const API_BASE_URL = "http://localhost:5000";
+// Builds the backend's address from whatever host the page was loaded from
+// (works on localhost during development AND on the GCP VM's public IP after deployment)
+const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:5000`;
 
 // Saves login info in the browser after a successful login
 function saveSession(token, role, name) {
