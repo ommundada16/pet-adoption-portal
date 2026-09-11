@@ -113,16 +113,23 @@ def login_shelter():
 
 # --- PETS ---
 
-# Returns all pets, or filters by species if ?species=Dog is passed in the URL
+# Returns pets, optionally filtered by species (?species=Dog) and/or adoption status (?adopted=yes|no)
 @app.route("/api/pets", methods=["GET"])
 def get_pets():
     species = request.args.get("species")
+    adopted = request.args.get("adopted")
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    query = "SELECT * FROM pets WHERE 1=1"
+    params = []
     if species:
-        cursor.execute("SELECT * FROM pets WHERE species = %s", (species,))
-    else:
-        cursor.execute("SELECT * FROM pets")
+        query += " AND species = %s"
+        params.append(species)
+    if adopted == "yes":
+        query += " AND status = 'Adopted'"
+    elif adopted == "no":
+        query += " AND status != 'Adopted'"
+    cursor.execute(query, tuple(params))
     pets = cursor.fetchall()
     cursor.close()
     conn.close()
@@ -243,7 +250,8 @@ def get_user_requests(payload):
     conn.close()
     return jsonify(requests)
 
-# Shows the logged-in shelter all requests made for its own pets
+# Shows the logged-in shelter only the PENDING requests for its own pets
+# (once approved/rejected, a request no longer needs action, so it drops off this list)
 @app.route("/api/adoption-requests/shelter-requests", methods=["GET"])
 @token_required
 def get_shelter_requests(payload):
@@ -256,7 +264,7 @@ def get_shelter_requests(payload):
         FROM adoption_requests ar
         JOIN users u ON ar.user_id = u.user_id
         JOIN pets p ON ar.pet_id = p.pet_id
-        WHERE p.shelter_id = %s
+        WHERE p.shelter_id = %s AND ar.status = 'Pending'
     """, (payload["shelter_id"],))
     requests = cursor.fetchall()
     cursor.close()
