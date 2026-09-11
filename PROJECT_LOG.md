@@ -170,6 +170,22 @@ git push
 
 ---
 
+## Step 13 (UX fixes, post-testing) — Admin dashboard corrections
+
+Found while actually using the deployed local stack (you had already started testing it yourself — a second shelter account and pet "tommy" with a real photo showed up in the data, which is how this was caught):
+
+**Issue 1 — Shelters could see "Request to Adopt" on pet-details:** A logged-in shelter/admin account had no business requesting to adopt a pet. Fixed in `pet-details.js`: the button is now only rendered when `getRole() !== "shelter"`; shelters instead see a plain message. The server already rejected such a request via the `role != "user"` check in `create_adoption_request()` — this just makes the UI match what the API already enforced, instead of showing a button that would only fail after clicking it.
+
+**Issue 2 — "Add New Pet" and "Manage Requests" crammed onto one page:** Split into two: `admin.html` (adoption requests only) and a new `add-pet.html` (+ `add-pet.js`) for adding pets and uploading photos. Reasoning: these are two distinct shelter tasks done at different times — bundling them made the dashboard feel cluttered and made per-feature explanation harder for the "4 people explaining their piece" goal.
+
+**Issue 3 — Approved/rejected requests stayed clickable:** The real bug: `get_shelter_requests()` returned *every* request regardless of status, so an already-`Approved` request still rendered with live Approve/Reject buttons — clicking Reject on it afterward would silently flip the pet's status back to `Available` even though it was already adopted. Fixed two ways:
+1. **Backend:** `WHERE ... AND ar.status = 'Pending'` added to the query — acted-upon requests simply stop being returned.
+2. **Frontend:** `respondToRequest()` now disables both buttons on the specific card immediately (before the network call resolves) and removes that card from the DOM as soon as the response comes back, instead of only relying on a full list reload. Belt-and-suspenders: even a slow network can't create a window for a double-click.
+
+**Addition — Adopted / Not Adopted filter:** Added a second dropdown next to the species filter on the browse page. Implemented as a new `?adopted=yes|no` query parameter on `GET /api/pets` (combinable with `?species=`), rather than a client-side-only filter, so the same filtering logic could later be reused by other clients (e.g. a future mobile app) without duplicating logic in JavaScript.
+
+---
+
 ## Commands Reference (everything used so far)
 
 ```bash
