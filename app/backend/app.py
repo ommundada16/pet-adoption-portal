@@ -113,34 +113,45 @@ def login_shelter():
 
 # --- PETS ---
 
-# Returns pets, optionally filtered by species (?species=Dog) and/or adoption status (?adopted=yes|no)
+# Returns pets (with their shelter's name attached), optionally filtered by
+# species (?species=Dog) and/or adoption status (?adopted=yes|no)
 @app.route("/api/pets", methods=["GET"])
 def get_pets():
     species = request.args.get("species")
     adopted = request.args.get("adopted")
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    query = "SELECT * FROM pets WHERE 1=1"
+    query = """
+        SELECT p.*, s.name AS shelter_name
+        FROM pets p
+        JOIN shelters s ON p.shelter_id = s.shelter_id
+        WHERE 1=1
+    """
     params = []
     if species:
-        query += " AND species = %s"
+        query += " AND p.species = %s"
         params.append(species)
     if adopted == "yes":
-        query += " AND status = 'Adopted'"
+        query += " AND p.status = 'Adopted'"
     elif adopted == "no":
-        query += " AND status != 'Adopted'"
+        query += " AND p.status != 'Adopted'"
     cursor.execute(query, tuple(params))
     pets = cursor.fetchall()
     cursor.close()
     conn.close()
     return jsonify(pets)
 
-# Returns full details of one pet by its id
+# Returns full details of one pet by its id, including its shelter's name
 @app.route("/api/pets/<int:pet_id>", methods=["GET"])
 def get_pet(pet_id):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM pets WHERE pet_id = %s", (pet_id,))
+    cursor.execute("""
+        SELECT p.*, s.name AS shelter_name
+        FROM pets p
+        JOIN shelters s ON p.shelter_id = s.shelter_id
+        WHERE p.pet_id = %s
+    """, (pet_id,))
     pet = cursor.fetchone()
     cursor.close()
     conn.close()

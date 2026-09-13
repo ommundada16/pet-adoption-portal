@@ -22,6 +22,7 @@ async function loadPetDetails() {
     document.getElementById("petDetails").innerHTML = `
         <img src="${imageUrl}">
         <h2>${pet.name}</h2>
+        <p><b>Listed by:</b> ${pet.shelter_name}</p>
         <p><b>Species:</b> ${pet.species}</p>
         <p><b>Breed:</b> ${pet.breed || "Not specified"}</p>
         <p><b>Age:</b> ${pet.age || "Unknown"}</p>
