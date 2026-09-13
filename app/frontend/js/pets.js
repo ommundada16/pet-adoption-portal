@@ -25,6 +25,7 @@ function displayPets(pets) {
                 <img src="${imageUrl}" alt="${pet.name}">
                 <h3>${pet.name}</h3>
                 <p>${pet.species} &mdash; <span class="status-${pet.status}">${pet.status}</span></p>
+                <p style="font-size:12px;">Listed by ${pet.shelter_name}</p>
                 <a class="view-link" href="pet-details.html?id=${pet.pet_id}">View Details</a>
             </div>
         `;
