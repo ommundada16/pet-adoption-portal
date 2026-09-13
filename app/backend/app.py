@@ -167,20 +167,84 @@ def add_pet(payload):
     conn.close()
     return jsonify({"message": "Pet added successfully", "pet_id": new_pet_id}), 201
 
-# Updates a pet's status — shelter only
+# Returns only the pets belonging to the logged-in shelter (used by the "My Pets" page)
+@app.route("/api/pets/my-pets", methods=["GET"])
+@token_required
+def get_my_pets(payload):
+    if payload["role"] != "shelter":
+        return jsonify({"error": "Shelters only"}), 403
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT * FROM pets WHERE shelter_id = %s", (payload["shelter_id"],))
+    pets = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return jsonify(pets)
+
+# Updates any given fields of a pet (name/species/breed/age/description/status) — owning shelter only
 @app.route("/api/pets/<int:pet_id>", methods=["PUT"])
 @token_required
-def update_pet_status(payload, pet_id):
+def update_pet(payload, pet_id):
     if payload["role"] != "shelter":
-        return jsonify({"error": "Only shelters can update pet status"}), 403
-    data = request.get_json()
+        return jsonify({"error": "Only shelters can update pets"}), 403
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE pets SET status = %s WHERE pet_id = %s", (data["status"], pet_id))
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT shelter_id FROM pets WHERE pet_id = %s", (pet_id,))
+    pet = cursor.fetchone()
+    if pet is None:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Pet not found"}), 404
+    if pet["shelter_id"] != payload["shelter_id"]:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "You can only update your own pets"}), 403
+
+    data = request.get_json()
+    updates = {f: data[f] for f in ["name", "species", "breed", "age", "description", "status"] if f in data}
+    if not updates:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "No fields to update"}), 400
+
+    set_clause = ", ".join(f"{field} = %s" for field in updates)
+    cursor.execute(f"UPDATE pets SET {set_clause} WHERE pet_id = %s", (*updates.values(), pet_id))
     conn.commit()
     cursor.close()
     conn.close()
-    return jsonify({"message": "Pet status updated"})
+    return jsonify({"message": "Pet updated"})
+
+# Deletes a pet (and its adoption request history, and its uploaded photo) — owning shelter only
+@app.route("/api/pets/<int:pet_id>", methods=["DELETE"])
+@token_required
+def delete_pet(payload, pet_id):
+    if payload["role"] != "shelter":
+        return jsonify({"error": "Only shelters can delete pets"}), 403
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT shelter_id, image_filename FROM pets WHERE pet_id = %s", (pet_id,))
+    pet = cursor.fetchone()
+    if pet is None:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Pet not found"}), 404
+    if pet["shelter_id"] != payload["shelter_id"]:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "You can only delete your own pets"}), 403
+
+    cursor.execute("DELETE FROM adoption_requests WHERE pet_id = %s", (pet_id,))
+    cursor.execute("DELETE FROM pets WHERE pet_id = %s", (pet_id,))
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    if pet["image_filename"]:
+        image_path = os.path.join(app.config["UPLOAD_FOLDER"], pet["image_filename"])
+        if os.path.exists(image_path):
+            os.remove(image_path)
+
+    return jsonify({"message": "Pet deleted"})
 
 # Checks the uploaded file has an allowed image extension
 def allowed_file(filename):
@@ -192,6 +256,16 @@ def allowed_file(filename):
 def upload_pet_image(payload, pet_id):
     if payload["role"] != "shelter":
         return jsonify({"error": "Only shelters can upload pet images"}), 403
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT shelter_id FROM pets WHERE pet_id = %s", (pet_id,))
+    pet = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    if pet is None:
+        return jsonify({"error": "Pet not found"}), 404
+    if pet["shelter_id"] != payload["shelter_id"]:
+        return jsonify({"error": "You can only upload photos for your own pets"}), 403
     if "image" not in request.files:
         return jsonify({"error": "No image file provided"}), 400
     file = request.files["image"]
@@ -290,6 +364,36 @@ def update_request_status(payload, request_id):
     cursor.close()
     conn.close()
     return jsonify({"message": f"Request {new_status.lower()}"})
+
+# Lets a user withdraw their own request, as long as it's still Pending
+@app.route("/api/adoption-requests/<int:request_id>", methods=["DELETE"])
+@token_required
+def cancel_adoption_request(payload, request_id):
+    if payload["role"] != "user":
+        return jsonify({"error": "Only adopters can cancel requests"}), 403
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("SELECT user_id, pet_id, status FROM adoption_requests WHERE request_id = %s", (request_id,))
+    req = cursor.fetchone()
+    if req is None:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Request not found"}), 404
+    if req["user_id"] != payload["user_id"]:
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "You can only cancel your own requests"}), 403
+    if req["status"] != "Pending":
+        cursor.close()
+        conn.close()
+        return jsonify({"error": "Only pending requests can be cancelled"}), 400
+
+    cursor.execute("DELETE FROM adoption_requests WHERE request_id = %s", (request_id,))
+    cursor.execute("UPDATE pets SET status = 'Available' WHERE pet_id = %s", (req["pet_id"],))
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return jsonify({"message": "Request cancelled"})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
