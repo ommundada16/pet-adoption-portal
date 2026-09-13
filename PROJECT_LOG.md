@@ -186,6 +186,38 @@ Found while actually using the deployed local stack (you had already started tes
 
 ---
 
+## Step 13b — Full CRUD Completion for Pets & Requests
+
+**Trigger:** decided to switch cloud providers from GCP to AWS (see below), and while that account setup was pending, used the time to audit the app for completeness and real bugs by clicking through the live running containers as an actual shelter/adopter, rather than guessing.
+
+**What was actually broken, found by testing (not by reading code):**
+- Shelters had **no way to view, edit, or delete pets they'd already added** — only an "Add New Pet" form existed. Once a pet was created, it was invisible on the shelter's own dashboard forever.
+- The photo-upload flow only worked in the same page-load as creating a pet (it relied on a JavaScript variable holding the just-created `pet_id`, which is lost on refresh/navigation) — so there was no way to add or replace a photo for an existing pet.
+- **Real authorization bug:** `PUT /api/pets/<id>` (update) and `POST /api/pets/<id>/upload-image` had no check that the pet actually belonged to the shelter making the request — any shelter's valid JWT could edit or upload a photo to **any other shelter's** pet, just by guessing/incrementing the pet ID. Same vulnerability class as the IDOR issue fixed in Step 5b, just missed here.
+- Adopters had no way to withdraw an adoption request they'd made by mistake.
+
+**Backend additions (`app.py`):**
+- `GET /api/pets/my-pets` — shelter's own pets only
+- `PUT /api/pets/<id>` — rewritten to update any provided subset of fields (name/species/breed/age/description/status), with an ownership check added
+- `DELETE /api/pets/<id>` — deletes the pet, its adoption-request history, and its uploaded photo file from disk; ownership-checked
+- `DELETE /api/adoption-requests/<id>` — lets an adopter cancel their own still-Pending request, reverting the pet to `Available`
+- Added the missing ownership check to `upload_pet_image()`
+
+**Frontend additions:**
+- New `my-pets.html` / `my-pets.js` — the shelter's real pet-management page: edit any field inline, delete with a confirmation prompt, and upload/replace a photo at any time (this is what actually fixes the broken upload flow — it's no longer tied to a just-created pet)
+- `add-pet.html`/`add-pet.js` simplified back down to just the creation form; on success it redirects to My Pets, where the (now-working) photo upload happens
+- `requests.js` — added a "Cancel Request" button on the adopter's Pending requests
+
+**Verified live** (curl + real browser clicks against the running containers): my-pets listing, editing Bruno's description (persisted and visible on the public pet-details page), the ownership check correctly blocking cross-shelter edits, deleting a pet, and the full cancel-request flow (pet correctly reverts to Available).
+
+**Decision — no separate "edit pet" page:** the My Pets list itself doubles as the edit UI (fields are pre-filled inputs with a Save button right there), rather than a second page per pet. Fewer files, fewer clicks, and matches the instruction to keep scope to what's actually needed rather than adding polish for its own sake.
+
+## Cloud Provider Change — GCP → AWS
+
+Switched from Google Cloud Platform to AWS partway through Step 13, after hitting GCP's mandatory one-time prepayment requirement for enabling billing in India. The Terraform files written for GCP (`google` provider, `google_compute_instance`, `google_compute_firewall`) will be replaced with AWS equivalents (`aws` provider, `aws_instance`, `aws_security_group`) once AWS credentials are set up — conceptually the same shape (VM + firewall/security group + injected SSH key), just a different provider's resource names.
+
+---
+
 ## Commands Reference (everything used so far)
 
 ```bash
