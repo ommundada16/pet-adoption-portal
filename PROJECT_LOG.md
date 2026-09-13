@@ -218,6 +218,48 @@ Switched from Google Cloud Platform to AWS partway through Step 13, after hittin
 
 ---
 
+## Step 13 (final) — Terraform on AWS, executed and verified live
+
+**Prerequisite work done on your machine:**
+- Installed Terraform and AWS CLI (via winget)
+- Installed Ansible inside **WSL Ubuntu** — Ansible has no official Windows support as a control machine, so WSL is what actually runs `ansible`/`ansible-playbook`; Terraform runs directly on Windows since the AWS/Terraform combo works fine natively
+- Created IAM user `terraform-deployer` (not root) with `AmazonEC2FullAccess` only — least privilege, so a leaked key can only touch EC2, not your whole AWS account
+- Generated an SSH key pair locally (`C:\Users\<you>\.ssh\pet-adoption-key`) — Terraform injects the public half into AWS directly, no manual "create key pair" step in the console needed
+
+**Terraform files, AWS version** (`terraform/main.tf`, `variables.tf`, `outputs.tf`):
+- `aws_security_group` opening ports 22 (SSH/Ansible), 80 (frontend), 5000 (backend API)
+- `aws_key_pair` registering our local public key
+- `aws_instance` — the VM itself, AMI resolved dynamically via a `data "aws_ami"` lookup for the latest Ubuntu 22.04 (instead of hardcoding an AMI ID that only works in one region)
+
+**Incident hit and fixed during `terraform apply`:** the default `t2.micro` instance type was rejected —
+```
+InvalidParameterCombination: The specified instance type is not eligible for Free Tier.
+```
+This AWS account's free tier is scoped to `t3.micro` (and a few others), not the traditionally-cited `t2.micro` — free tier eligibility varies by account/region. Fixed by querying `aws ec2 describe-instance-types --filters "Name=free-tier-eligible,Values=true"` and switching the default to `t3.micro`. Good viva point: "we verified free-tier eligibility with the AWS CLI rather than assuming a commonly-cited instance type."
+
+**Result:** `terraform apply` created 1 EC2 instance + 1 security group + 1 key pair in ~15 seconds, output the public IP directly (`terraform output public_ip`).
+
+## Step 14 — Ansible, executed and verified live
+
+**`ansible/deploy.yml`** does 5 things on the fresh Ubuntu VM: update apt cache → install `docker.io` + `docker-compose-v2` + `git` → add `ubuntu` user to the `docker` group → **`git clone` the GitHub repo directly onto the server** → `docker compose up --build -d`.
+
+**Decision — clone from GitHub instead of copying local files to the server:** avoids needing a working `rsync`/file-sync path from a Windows control machine to a Linux target (genuinely awkward), and is arguably better practice anyway — the server pulls a known, version-controlled commit from origin rather than trusting whatever happens to be sitting on someone's laptop.
+
+**Incident hit and fixed:** the SSH private key, sitting on the Windows filesystem (`/mnt/c/...` from WSL's point of view), had permissions too open for SSH to accept ("UNPROTECTED PRIVATE KEY FILE") — Windows/NTFS-mounted paths in WSL don't respect Unix permission bits the way WSL's own native filesystem does. Fixed by copying the key into WSL's native home directory (`~/.ssh_pet_key`) and `chmod 600`-ing it there; `inventory.ini` points at that copy.
+
+**Verified:** `ansible all -i inventory.ini -m ping` → `pong`, then `ansible-playbook -i inventory.ini deploy.yml` completed with `failed=0`.
+
+## Step 15 — Live verification
+
+Confirmed directly against the public IP (no localhost involved):
+- `http://<public_ip>/` → frontend loads (200), full mustard/cream theme renders correctly
+- `http://<public_ip>:5000/api/health` → `{"status": "ok"}`
+- `http://<public_ip>:5000/api/pets` → `[]` (correct — this is a **fresh** MySQL database on the new server, separate from the one used for local Docker Compose testing; add real pets here to make it demo-ready)
+
+**Why this matters for viva:** this proves the exact same Docker images/compose file that ran locally also run unmodified on a completely different machine (a cloud VM neither of us had touched by hand) — the core promise of containerization ("works the same everywhere") demonstrated, not just claimed.
+
+---
+
 ## Commands Reference (everything used so far)
 
 ```bash
@@ -247,4 +289,22 @@ docker compose ps
 docker compose logs backend
 docker compose down          # stops containers, KEEPS volumes (photos/DB survive)
 docker compose down -v       # stops containers, DELETES volumes (photos/DB lost)
+
+# AWS + Terraform
+aws configure                                  # one-time: sets up your CLI credentials
+aws sts get-caller-identity                    # confirms who you're authenticated as
+aws ec2 describe-instance-types --filters "Name=free-tier-eligible,Values=true" --region ap-south-1
+
+cd terraform
+terraform init
+terraform validate
+terraform plan
+terraform apply
+terraform output public_ip
+terraform destroy            # final cleanup, after faculty verification
+
+# Ansible (run from WSL - "wsl -d Ubuntu -- <command>" from Windows)
+cd ansible
+ansible all -i inventory.ini -m ping
+ansible-playbook -i inventory.ini deploy.yml
 ```
