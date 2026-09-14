@@ -1,8 +1,13 @@
 // api.js - shared helper functions for talking to the backend
 
 // Builds the backend's address from whatever host the page was loaded from
-// (works on localhost during development AND on the GCP VM's public IP after deployment)
-const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:5000`;
+// (works on localhost during development AND on a deployed server's public IP).
+// Falls back to localhost:5000 if the page was opened directly as a file
+// (file://) instead of through Docker/nginx, since window.location.hostname
+// is empty in that case and would otherwise produce a broken URL.
+const API_BASE_URL = (window.location.protocol === "file:" || !window.location.hostname)
+    ? "http://localhost:5000"
+    : `${window.location.protocol}//${window.location.hostname}:5000`;
 
 // Saves login info in the browser after a successful login
 function saveSession(token, role, name) {
