@@ -40,3 +40,14 @@ CREATE TABLE adoption_requests (
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (pet_id) REFERENCES pets(pet_id)
 );
+
+-- Seed data so every fresh environment (a teammate's laptop, a redeployed
+-- AWS server) shows demo pets immediately instead of an empty homepage.
+-- Login: demo@shelter.com / Demo@1234
+INSERT INTO shelters (name, email, password, phone, address) VALUES
+('Happy Paws Shelter', 'demo@shelter.com', 'scrypt:32768:8:1$MJJLnahWtKBIYUli$bff9658257b7d83a8c0d8d50adac7bcb34a2819735b67db3c0bac38a11b8bf447791910b09cc3fbda03c626a6efe203b9cb19c2438eb8deeb3de69b3037881f5', '9999999999', 'Pune, Maharashtra');
+
+INSERT INTO pets (shelter_id, name, species, breed, age, description, status) VALUES
+(1, 'Bruno', 'Dog', 'Labrador', 2, 'Friendly and playful, great with kids.', 'Available'),
+(1, 'Whiskers', 'Cat', 'Persian', 1, 'Calm and affectionate lap cat.', 'Available'),
+(1, 'Coco', 'Rabbit', 'Holland Lop', 1, 'Curious and loves to hop around the garden.', 'Available');
