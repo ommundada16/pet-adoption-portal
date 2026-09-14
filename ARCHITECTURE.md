@@ -30,19 +30,22 @@ flowchart TD
 
 ```mermaid
 flowchart LR
+    Browser((Browser))
+
     subgraph VM["AWS EC2 Instance"]
-        subgraph FE["frontend container<br/>(nginx)"]
-        end
-        subgraph BE["backend container<br/>(Flask)"]
-        end
-        subgraph DB["db container<br/>(MySQL)"]
-        end
+        FE["frontend container<br/>nginx"]
+        BE["backend container<br/>Flask"]
+        DB["db container<br/>MySQL"]
+        VOL1[("pet_images volume")]
+        VOL2[("mysql_data volume")]
+
         FE -->|"fetch() calls"| BE
         BE -->|SQL queries| DB
-        BE -.->|reads/writes photos| VOL1[("pet_images volume")]
-        DB -.->|reads/writes tables| VOL2[("mysql_data volume")]
+        BE -.->|reads/writes photos| VOL1
+        DB -.->|reads/writes tables| VOL2
     end
-    Browser((Browser)) -->|":80"| FE
+
+    Browser -->|":80"| FE
     Browser -->|":5000"| BE
 ```
 
@@ -156,8 +159,7 @@ stateDiagram-v2
     [*] --> Available
     Available --> Pending: user submits adoption request
     Pending --> Adopted: shelter approves
-    Pending --> Available: shelter rejects
-    Pending --> Available: user cancels their own request
+    Pending --> Available: shelter rejects or user cancels
 ```
 
 A pet's `status` and its adoption request's `status` are always changed together in the same backend function — never independently — so they can't drift out of sync.
