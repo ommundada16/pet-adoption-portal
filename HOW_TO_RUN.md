@@ -162,7 +162,7 @@ Type `yes` to confirm. This deletes the EC2 instance and security group entirely
 
 | Symptom | Likely Cause | Fix |
 |---|---|---|
-| `port is already allocated` on `docker compose up` | Another container or local service is already using that port | `docker ps` to find it, `docker stop <name>`, then retry |
+| `port is already allocated` on `docker compose up`, then login/register/pets all silently fail | Port 5000 or 80 is already used by something else on your machine, so the `backend` container never actually started (`docker compose ps` will show it missing or `Exited`) — every feature fails because there's no backend to talk to | **Mac:** almost always AirPlay Receiver — System Settings → General → AirDrop & Handoff → turn off AirPlay Receiver. **Windows:** `netstat -ano \| findstr :5000` to find the process holding it. **Linux:** `sudo lsof -i :5000`. Free the port, then `docker compose up --build -d` again |
 | `Bind for 0.0.0.0:3306 failed` | A local MySQL install is already using port 3306 | Not an issue for us — we deliberately don't expose MySQL's port at all |
 | SSH `Permission denied (publickey)` | Wrong key path, or key permissions too open (common with Windows-mounted paths in WSL) | Copy the key into WSL's native filesystem and `chmod 600` it |
 | `terraform apply` fails with `InvalidParameterCombination... Free Tier` | The instance type isn't free-tier eligible on this account/region | Run `aws ec2 describe-instance-types --filters "Name=free-tier-eligible,Values=true" --region ap-south-1` and use one of the listed types |
