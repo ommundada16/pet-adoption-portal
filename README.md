@@ -28,8 +28,6 @@ Docker Compose on the VM
 
 **Live demo:** http://13.201.134.98 *(will change if the EC2 instance is recreated/resized — check `terraform output public_ip`)*
 
-For full diagrams (deployment pipeline, database ER diagram, request-flow sequence diagrams), see [ARCHITECTURE.md](ARCHITECTURE.md).
-
 Think of it like moving into a new house: **Terraform** builds the four walls (the server), **Ansible** wires the electricity and plumbing (installs software), **Docker Compose** moves your furniture in ready-to-use (runs the app).
 
 ## Tech Stack
@@ -54,28 +52,11 @@ Think of it like moving into a new house: **Terraform** builds the four walls (t
 | C — Docker | Dockerfiles, `docker-compose.yml` | Image vs container, why a volume protects pet photos |
 | D — Cloud/Infra | `terraform/`, `ansible/` | How the VM is created and configured automatically |
 
-## Documentation
-
-| Doc | What it's for |
-|---|---|
-| [TEAM_GUIDE.md](TEAM_GUIDE.md) | Start here if you're new to the project — plain-language explanation of what it does and how the pieces fit together |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Diagrams: deployment pipeline, container layout, database schema, request flows |
-| [PROJECT_LOG.md](PROJECT_LOG.md) | Every decision made and why, in build order — real bugs found and fixed, not just a feature list |
-| [DEMO_WALKTHROUGH.md](DEMO_WALKTHROUGH.md) | The faculty presentation script — what to show, in what order, with speaker cues |
-| [FACULTY_CHALLENGE_SCENARIOS.md](FACULTY_CHALLENGE_SCENARIOS.md) | "What if sir deletes/breaks X live" — anticipated scenarios and how to respond to each |
-| [HOW_TO_RUN.md](HOW_TO_RUN.md) | Copy-paste commands: run locally, deploy to AWS, redeploy, tear down, troubleshoot |
-
 ## Project Structure
 
 ```
 devops-project/
 ├── README.md
-├── TEAM_GUIDE.md                ← read this first if you're new to the project
-├── ARCHITECTURE.md              ← diagrams
-├── PROJECT_LOG.md               ← full build log + every decision made, with reasoning
-├── DEMO_WALKTHROUGH.md          ← faculty presentation script
-├── FACULTY_CHALLENGE_SCENARIOS.md ← "what if sir breaks X live" scenarios
-├── HOW_TO_RUN.md                ← practical run/deploy/troubleshoot commands
 ├── docker-compose.yml
 ├── app/
 │   ├── backend/                Flask API, MySQL schema, Dockerfile
@@ -111,7 +92,7 @@ ansible all -i inventory.ini -m ping
 ansible-playbook -i inventory.ini deploy.yml
 ```
 
-Then open `http://<EC2_PUBLIC_IP>` in a browser. For the full prerequisite setup (IAM user, SSH key, WSL for Ansible), see [HOW_TO_RUN.md](HOW_TO_RUN.md).
+Then open `http://<EC2_PUBLIC_IP>` in a browser.
 
 ## API Endpoints
 
@@ -135,5 +116,3 @@ Then open `http://<EC2_PUBLIC_IP>` in a browser. For the full prerequisite setup
 | GET | `/api/adoption-requests/shelter-requests` | shelter | View pending requests for your pets |
 | PUT | `/api/adoption-requests/<id>` | shelter | Approve/reject a request |
 | DELETE | `/api/adoption-requests/<id>` | user (owner only) | Cancel your own pending request |
-
-For the full build log, every command run, and the reasoning behind each decision (why Flask over Node, why JWT, why a Docker volume for images, etc.), see [PROJECT_LOG.md](PROJECT_LOG.md).
