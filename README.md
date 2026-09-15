@@ -26,7 +26,7 @@ Docker Compose on the VM
   Browser  ──▶  http://<EC2 Public IP>
 ```
 
-**Live demo:** http://13.201.76.212 *(will change if the EC2 instance is recreated — check `terraform output public_ip`)*
+**Live demo:** http://13.201.134.98 *(will change if the EC2 instance is recreated/resized — check `terraform output public_ip`)*
 
 For full diagrams (deployment pipeline, database ER diagram, request-flow sequence diagrams), see [ARCHITECTURE.md](ARCHITECTURE.md).
 
