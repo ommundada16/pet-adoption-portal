@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type (t3.micro is free-tier eligible on this account)"
+  description = "EC2 instance type. t3.micro (1GB RAM, free-tier) repeatedly became unresponsive under MySQL+Flask+nginx load - t3.small (2GB RAM) is used instead for demo reliability."
   type        = string
-  default     = "t3.micro"
+  default     = "t3.small"
 }
 
 variable "ssh_public_key_path" {

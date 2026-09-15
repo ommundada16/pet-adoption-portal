@@ -26,6 +26,41 @@
         groups: docker
         append: yes
 
+    # A small cloud instance running MySQL + Flask + nginx together can run low
+    # on memory under load. A swap file gives the kernel breathing room instead
+    # of the OOM killer taking down sshd/services - this task is idempotent
+    # (checks first, safe to run every deploy).
+    - name: Check if a swap file already exists
+      stat:
+        path: /swapfile
+      register: swap_file_check
+
+    - name: Create a 2GB swap file
+      command: fallocate -l 2G /swapfile
+      when: not swap_file_check.stat.exists
+
+    - name: Set swap file permissions
+      file:
+        path: /swapfile
+        mode: '0600'
+      when: not swap_file_check.stat.exists
+
+    - name: Format the swap file
+      command: mkswap /swapfile
+      when: not swap_file_check.stat.exists
+
+    - name: Enable the swap file
+      command: swapon /swapfile
+      when: not swap_file_check.stat.exists
+
+    - name: Make swap permanent across reboots
+      mount:
+        path: none
+        src: /swapfile
+        fstype: swap
+        opts: sw
+        state: present
+
     - name: Clone (or update) the project repository from GitHub
       git:
         repo: "{{ repo_url }}"

@@ -3,7 +3,9 @@
 *.tfstate.backup
 .terraform/
 terraform.tfvars
+*.tfplan
 tfplan
+.terraform.tfstate.lock.info
 __pycache__/
 *.pyc
 uploads/
