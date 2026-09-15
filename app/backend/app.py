@@ -16,6 +16,10 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
+# Checks a phone number is exactly 10 digits (only when one is provided - phone stays optional)
+def is_valid_phone(phone):
+    return phone is None or phone == "" or (phone.isdigit() and len(phone) == 10)
+
 # Checks the Authorization header for a valid JWT before letting a route run
 def token_required(f):
     @wraps(f)
@@ -41,6 +45,8 @@ def health_check():
 @app.route("/api/users/register", methods=["POST"])
 def register_user():
     data = request.get_json()
+    if not is_valid_phone(data.get("phone")):
+        return jsonify({"error": "Phone number must be exactly 10 digits"}), 400
     hashed_password = generate_password_hash(data["password"])
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -79,6 +85,8 @@ def login_user():
 @app.route("/api/shelters/register", methods=["POST"])
 def register_shelter():
     data = request.get_json()
+    if not is_valid_phone(data.get("phone")):
+        return jsonify({"error": "Phone number must be exactly 10 digits"}), 400
     hashed_password = generate_password_hash(data["password"])
     conn = get_db_connection()
     cursor = conn.cursor()
