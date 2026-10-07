@@ -1,4 +1,12 @@
 ---
+# Configures the EC2 server and deploys the app + monitoring stack.
+#
+# Run by the CI/CD pipeline after every successful push to main, or by hand:
+#   export MYSQL_ROOT_PASSWORD=... APP_SECRET_KEY=... GRAFANA_ADMIN_PASSWORD=...
+#   ansible-playbook -i inventory.ini deploy.yml -e image_tag=<git-sha>
+#
+# It is idempotent: running it twice changes nothing the second time.
+
 - name: Deploy Pet Adoption Portal to the EC2 instance
   hosts: web
   become: true
@@ -6,8 +14,25 @@
   vars:
     repo_url: "https://github.com/ommundada16/pet-adoption-portal.git"
     app_dir: /home/ubuntu/pet-adoption-portal
+    git_ref: main                         # the pipeline passes the exact commit being deployed
+    registry: ghcr.io/ommundada16
+    image_tag: latest                     # the pipeline passes the git-sha tag of the tested images
+    compose_files: "-f docker-compose.yml -f docker-compose.monitoring.yml"
+    mysql_root_password: "{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}"
+    app_secret_key: "{{ lookup('env', 'APP_SECRET_KEY') }}"
+    grafana_admin_password: "{{ lookup('env', 'GRAFANA_ADMIN_PASSWORD') }}"
+    registry_user: "{{ lookup('env', 'REGISTRY_USER') }}"
+    registry_token: "{{ lookup('env', 'REGISTRY_TOKEN') }}"
 
   tasks:
+    - name: Make sure the required secrets were provided
+      assert:
+        that:
+          - mysql_root_password | length > 0
+          - app_secret_key | length > 0
+          - grafana_admin_password | length > 0
+        fail_msg: "Set MYSQL_ROOT_PASSWORD, APP_SECRET_KEY and GRAFANA_ADMIN_PASSWORD as environment variables"
+
     - name: Update apt package cache
       apt:
         update_cache: yes
@@ -26,7 +51,7 @@
         groups: docker
         append: yes
 
-    # A small cloud instance running MySQL + Flask + nginx together can run low
+    # A small cloud instance running MySQL + Flask + nginx + monitoring can run low
     # on memory under load. A swap file gives the kernel breathing room instead
     # of the OOM killer taking down sshd/services - this task is idempotent
     # (checks first, safe to run every deploy).
@@ -61,14 +86,42 @@
         opts: sw
         state: present
 
-    - name: Clone (or update) the project repository from GitHub
+    - name: Fetch the project files (compose files + monitoring config) at the deployed commit
       git:
         repo: "{{ repo_url }}"
         dest: "{{ app_dir }}"
-        version: main
+        version: "{{ git_ref }}"
         force: yes
 
-    - name: Build and start all containers with Docker Compose
-      command: docker compose up --build -d
+    # The .env file holds the real passwords. It is created on the server only - never stored in git.
+    - name: Write the .env file with secrets and the image tag to deploy
+      template:
+        src: env.j2
+        dest: "{{ app_dir }}/.env"
+        mode: '0600'
+
+    - name: Log in to the container registry so the server can pull the images
+      shell: echo "{{ registry_token }}" | docker login ghcr.io -u "{{ registry_user }}" --password-stdin
+      no_log: true
+      when: registry_token | length > 0
+      changed_when: false
+
+    - name: Pull the exact image versions that passed the pipeline
+      command: docker compose {{ compose_files }} pull backend frontend
       args:
         chdir: "{{ app_dir }}"
+      changed_when: false
+
+    - name: Start (or update) all containers - no building on the server
+      command: docker compose {{ compose_files }} up -d --no-build --remove-orphans
+      args:
+        chdir: "{{ app_dir }}"
+
+    - name: Wait until the API reports it is ready (database connected)
+      uri:
+        url: http://localhost/api/ready
+        status_code: 200
+      register: ready_check
+      retries: 30
+      delay: 5
+      until: ready_check.status == 200

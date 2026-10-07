@@ -1,0 +1,76 @@
+# MySQL: one pod + a PersistentVolumeClaim so the data survives pod restarts.
+# The schema (tables + demo pets) comes from the "mysql-schema" ConfigMap, which deploy.sh
+# creates from app/backend/schema.sql; MySQL runs it automatically on first start.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data
+  namespace: pet-portal
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: pet-portal
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate        # a database volume can only be used by one pod at a time
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_DATABASE
+              value: pet_adoption
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: pet-portal-secret
+                  key: MYSQL_ROOT_PASSWORD
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+            - name: schema
+              mountPath: /docker-entrypoint-initdb.d
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -uroot -p$MYSQL_ROOT_PASSWORD --silent"]
+            initialDelaySeconds: 20
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { memory: 512Mi }
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mysql-data
+        - name: schema
+          configMap:
+            name: mysql-schema
+---
+# A Service gives the pod a stable DNS name ("mysql") that the backend connects to
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: pet-portal
+spec:
+  selector:
+    app: mysql
+  ports:
+    - port: 3306

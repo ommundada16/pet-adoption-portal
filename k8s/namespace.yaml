@@ -1,0 +1,5 @@
+# A namespace groups all the app's Kubernetes objects together
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pet-portal
