@@ -9,7 +9,7 @@ Animal shelters often struggle to connect rescued pets with adopters — listing
 - **FA1** (Units I–II): Git/GitHub, Docker, Docker Compose, Terraform, Ansible
 - **FA2** (Units III–IV): CI/CD pipeline, automated testing, security scanning, Kubernetes, Prometheus + Grafana monitoring, centralized logging, SRE practices
 
-**Live demo:** http://13.201.134.98 *(the server now gets a fixed Elastic IP — run `terraform output public_ip` for the current address)*
+**Live demo:** http://3.6.151.255 · **Grafana:** http://3.6.151.255:3000 *(fixed Elastic IP — it no longer changes when the server restarts)*
 
 ---
 
@@ -165,7 +165,7 @@ What each file does: `namespace.yaml` (a folder for our objects), `config.yaml` 
 ```bash
 cd terraform
 terraform init
-terraform apply            # creates EC2 (t3.medium) + firewall + Elastic IP
+terraform apply            # creates EC2 (c7i-flex.large) + firewall + Elastic IP
 terraform output           # prints public_ip, app_url, grafana_url
 ```
 Put `public_ip` into the `EC2_HOST` secret (and `ansible/inventory.ini` for manual runs). After that, **every merge to `main` deploys automatically**. Manual deploy:
@@ -236,7 +236,7 @@ If the error budget is used up, we stop shipping new features and fix reliabilit
 | **Fix** | Moved to a larger instance (`t3.small`) and added a 2 GB swap file through Ansible (commit `46808a5`). |
 | **What went well** | The fix is in code (Terraform + Ansible), so rebuilding the server was a repeatable, one-command job. |
 | **What went badly** | We only found out when someone opened the site. |
-| **Action items (done in FA2)** | ✅ Prometheus + node-exporter now track server memory; `HighMemoryUsage` and `ServiceDown` alerts. ✅ Instance upgraded to `t3.medium` to fit the monitoring stack. ✅ Containers get health checks and restart automatically. ✅ Smoke test runs after every deploy. |
+| **Action items (done in FA2)** | ✅ Prometheus + node-exporter now track server memory; `HighMemoryUsage` and `ServiceDown` alerts. ✅ Instance upgraded to `c7i-flex.large` to fit the monitoring stack. ✅ Containers get health checks and restart automatically. ✅ Smoke test runs after every deploy. |
 
 ## 10. API Endpoints
 

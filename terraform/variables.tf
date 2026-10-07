@@ -5,9 +5,9 @@ variable "aws_region" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type. t3.micro (1GB) repeatedly crashed under MySQL+Flask+nginx load (see the post-mortem in the README). The app plus the monitoring stack (Prometheus, Grafana, Loki) needs about 1.5GB, so t3.medium (4GB RAM) is used."
+  description = "EC2 instance type. t3.micro (1GB) repeatedly crashed under MySQL+Flask+nginx load (see the post-mortem in the README). The app plus the monitoring stack (Prometheus, Grafana, Loki) needs about 1.5GB, so a 4GB instance is used. c7i-flex.large is 4GB and allowed on the AWS Free Plan (t3.medium is not)."
   type        = string
-  default     = "t3.medium"
+  default     = "c7i-flex.large"
 }
 
 variable "ssh_public_key_path" {
