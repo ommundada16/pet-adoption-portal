@@ -1,5 +1,7 @@
 # 🐾 Pet Adoption Portal
 
+[![CI/CD](https://github.com/ommundada16/pet-adoption-portal/actions/workflows/ci-cd.yml/badge.svg?branch=main)](https://github.com/ommundada16/pet-adoption-portal/actions/workflows/ci-cd.yml)
+
 Animal shelters often struggle to connect rescued pets with adopters — listings get lost across phone calls, WhatsApp groups, and paper registers. This portal gives shelters a place to list pets and gives adopters a way to browse, request, and track adoptions in one system.
 
 **This is a DevOps project.** The pet-adoption app itself is intentionally simple — the subject being graded is the automated pipeline that takes code from a laptop to a live, monitored server with zero manual steps.
