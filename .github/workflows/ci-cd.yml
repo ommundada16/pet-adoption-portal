@@ -108,14 +108,14 @@ jobs:
       # Scan the built images for known vulnerabilities (Trivy). Only CRITICAL issues that already
       # have a fix available fail the build.
       - name: Scan backend image (Trivy)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.vars.outputs.registry }}/pet-portal-backend:${{ steps.vars.outputs.tag }}
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
       - name: Scan frontend image (Trivy)
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ steps.vars.outputs.registry }}/pet-portal-frontend:${{ steps.vars.outputs.tag }}
           severity: CRITICAL
