@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s        # how often Prometheus collects metrics
+  evaluation_interval: 15s    # how often alert rules are checked
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  # The Flask API: request counts, latency and business counters from /metrics
+  - job_name: backend
+    static_configs:
+      - targets: ["backend:5000"]
+
+  # The server: CPU, memory, disk
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

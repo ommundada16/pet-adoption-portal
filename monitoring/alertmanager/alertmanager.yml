@@ -1,0 +1,11 @@
+# Alertmanager decides where fired alerts go. Here they are simply listed in its web UI
+# (http://localhost:9093). To get a Slack message instead, add a slack_configs block under the receiver.
+
+route:
+  receiver: default
+  group_by: [alertname]
+  group_wait: 10s
+  repeat_interval: 1h
+
+receivers:
+  - name: default

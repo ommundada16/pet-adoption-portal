@@ -1,35 +1,61 @@
+# The application: MySQL + Flask API + nginx frontend.
+#   docker compose up --build -d
+# Values like ${MYSQL_ROOT_PASSWORD:-password} can be overridden from a .env file (see .env.example).
+
 services:
   db:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
       MYSQL_DATABASE: pet_adoption
     volumes:
       - mysql_data:/var/lib/mysql
       - ./app/backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    # Lets the backend wait until MySQL is really ready (not just started)
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      retries: 12
+      start_period: 40s
 
   backend:
     build: ./app/backend
+    # CI/CD builds this image, tags it with the git commit and pushes it here; the server pulls it
+    image: ${REGISTRY:-ghcr.io/ommundada16}/pet-portal-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
+      APP_ENV: ${APP_ENV:-development}
       DB_HOST: db
       DB_USER: root
-      DB_PASSWORD: password
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
       DB_NAME: pet_adoption
-      SECRET_KEY: change-this-secret-key
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret-key}
     volumes:
       - pet_images:/app/uploads
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/ready')"]
+      interval: 15s
+      retries: 5
+      start_period: 20s
+    # Only reachable from the server itself (for debugging); users go through nginx
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
 
   frontend:
     build: ./app/frontend
+    image: ${REGISTRY:-ghcr.io/ommundada16}/pet-portal-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/index.html"]
+      interval: 10s
+      retries: 5
     ports:
       - "80:80"
 
