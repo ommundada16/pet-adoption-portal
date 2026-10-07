@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: pet-portal
+spec:
+  replicas: 2                 # two copies of the API: if one dies the other keeps serving
+  strategy:
+    type: RollingUpdate       # new version is started before the old one is stopped = zero downtime
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+      annotations:
+        # Tells a Prometheus running in the cluster to scrape this pod
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
+        prometheus.io/path: /metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+      containers:
+        - name: backend
+          image: ghcr.io/ommundada16/pet-portal-backend:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          envFrom:
+            - configMapRef:
+                name: pet-portal-config
+            - secretRef:
+                name: pet-portal-secret
+          # Liveness: "is the process alive?"  -> if not, Kubernetes restarts the container
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          # Readiness: "can it serve traffic (database reachable)?" -> if not, no traffic is sent to it
+          readinessProbe:
+            httpGet:
+              path: /api/ready
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          emptyDir: {}        # demo only: photos are lost if the pod restarts (use a PVC in production)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: pet-portal
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 5000
+---
+# Horizontal Pod Autoscaler: adds backend pods when CPU is high, removes them when it is low
+# (needs the metrics-server add-on in the cluster)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend
+  namespace: pet-portal
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

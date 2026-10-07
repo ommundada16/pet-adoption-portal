@@ -30,21 +30,23 @@ resource "aws_key_pair" "deployer" {
   public_key = file(var.ssh_public_key_path)
 }
 
-# Opens the ports our app needs: 22 (SSH, for Ansible), 80 (frontend), 5000 (backend API)
+# Opens the ports we need: 22 (SSH, for Ansible), 80 (website), 3000 (Grafana dashboards).
+# Port 5000 (the API) is NOT opened any more - users reach it through nginx on port 80.
+# Prometheus (9090) and Alertmanager (9093) stay private too; reach them with an SSH tunnel.
 resource "aws_security_group" "allow_web_ssh" {
   name        = "pet-adoption-allow-web-ssh"
-  description = "Allow SSH, HTTP, and backend API traffic"
+  description = "Allow SSH, HTTP, and Grafana traffic"
 
   ingress {
     description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = [var.ssh_allowed_cidr]
   }
 
   ingress {
-    description = "Frontend"
+    description = "Website"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
@@ -52,9 +54,9 @@ resource "aws_security_group" "allow_web_ssh" {
   }
 
   ingress {
-    description = "Backend API"
-    from_port   = 5000
-    to_port     = 5000
+    description = "Grafana dashboards"
+    from_port   = 3000
+    to_port     = 3000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -74,7 +76,24 @@ resource "aws_instance" "pet_adoption_vm" {
   key_name               = aws_key_pair.deployer.key_name
   vpc_security_group_ids = [aws_security_group.allow_web_ssh.id]
 
+  # Room for Docker images, the database, and Prometheus/Loki data
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
+
   tags = {
     Name = "pet-adoption-vm"
+  }
+}
+
+# An Elastic IP is a fixed public address. Without it the IP changes every time the instance is
+# stopped/started, which would break the CI/CD pipeline's deploy target (EC2_HOST secret).
+resource "aws_eip" "pet_adoption_ip" {
+  instance = aws_instance.pet_adoption_vm.id
+  domain   = "vpc"
+
+  tags = {
+    Name = "pet-adoption-ip"
   }
 }

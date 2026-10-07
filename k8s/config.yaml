@@ -1,0 +1,24 @@
+# ConfigMap = normal settings, Secret = sensitive values.
+# NOTE: these Secret values are demo defaults. For a real deployment create the Secret from the
+# command line (kubectl create secret generic ...) so real passwords never go into git.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pet-portal-config
+  namespace: pet-portal
+data:
+  APP_ENV: production
+  DB_HOST: mysql
+  DB_USER: root
+  DB_NAME: pet_adoption
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pet-portal-secret
+  namespace: pet-portal
+type: Opaque
+stringData:
+  DB_PASSWORD: demo-db-password
+  MYSQL_ROOT_PASSWORD: demo-db-password
+  SECRET_KEY: demo-jwt-secret-change-me

@@ -1,0 +1,10 @@
+tests/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+.flake8
+setup.cfg
+requirements-dev.txt
+uploads/
+.venv/

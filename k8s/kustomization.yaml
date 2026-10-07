@@ -1,0 +1,16 @@
+# Kustomize lists the files that make up the app, so one command deploys everything:
+#   ./k8s/deploy.sh        (or:  kubectl apply -k k8s/ )
+# "images" lets CI swap the image tag to the exact git commit without editing the YAML files.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - config.yaml
+  - mysql.yaml
+  - backend.yaml
+  - frontend.yaml
+images:
+  - name: ghcr.io/ommundada16/pet-portal-backend
+    newTag: latest
+  - name: ghcr.io/ommundada16/pet-portal-frontend
+    newTag: latest
