@@ -20,6 +20,12 @@ check() {
 }
 
 echo "Smoke testing $BASE"
+
+# Wait up to 60s for the site to start answering (a fresh deploy may still be starting up)
+for i in $(seq 1 30); do
+  curl -s -o /dev/null --max-time 3 "$BASE/index.html" && break
+  sleep 2
+done
 check "frontend page loads"                200 "$BASE/index.html"
 check "API health (liveness)"              200 "$BASE/api/health"
 check "API ready (database reachable)"     200 "$BASE/api/ready"
